@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    :root {
+      --bg: #f4f6ef; --sidebar: #1a3d1f; --sidebar-text: #e8f5e9;
+      --accent: #f4b400; --text: #1f2937; --muted: #6b7280;
+      --card: #fff; --border: #dde5d8; --positive: #15803d; --negative: #b91c1c;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    .layout { display: flex; min-height: 100vh; }
+    .sidebar { width: 220px; background: var(--sidebar); color: var(--sidebar-text); padding: 1rem; flex-shrink: 0; }
+    .brand { display: flex; gap: .6rem; align-items: center; margin-bottom: 1.5rem; }
+    .brand-icon { font-size: 1.8rem; }
+    .nav-btn { display: block; width: 100%; text-align: left; background: none; border: none;
+      color: var(--sidebar-text); padding: .55rem .7rem; border-radius: 8px; cursor: pointer; font: inherit; margin-bottom: .2rem; }
+    .nav-btn:hover { background: rgba(255,255,255,.08); }
+    .nav-btn.active { background: var(--accent); color: #1a1a1a; font-weight: 600; }
+    .content { flex: 1; padding: 1.25rem 1.5rem; overflow-x: auto; }
+    h1 { margin: 0 0 .2rem; font-size: 1.5rem; }
+    .subtitle { color: var(--muted); margin: 0 0 1rem; font-size: .92rem; }
+    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: .75rem; margin-bottom: 1rem; }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: .85rem; }
+    .card.hl { border-color: var(--accent); background: #fffbeb; }
+    .card .lbl { display: block; color: var(--muted); font-size: .8rem; }
+    .card strong { font-size: 1.2rem; }
+    .panel { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 1rem; margin-bottom: 1rem; }
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    @media (max-width: 800px) { .layout { flex-direction: column; } .sidebar { width: 100%; display: flex; flex-wrap: wrap; gap: .3rem; } .grid2 { grid-template-columns: 1fr; } }
+    .form label { display: flex; flex-direction: column; gap: .25rem; font-size: .88rem; font-weight: 500; margin-bottom: .6rem; }
+    input, select, textarea { padding: .5rem; border: 1px solid var(--border); border-radius: 8px; font: inherit; width: 100%; }
+    .btn { border: 1px solid var(--border); background: #fff; padding: .5rem .9rem; border-radius: 8px; cursor: pointer; font: inherit; }
+    .btn.primary { background: var(--accent); font-weight: 600; border-color: #c49000; }
+    .btn:disabled { opacity: .5; cursor: wait; }
+    table { width: 100%; border-collapse: collapse; font-size: .88rem; }
+    th, td { padding: .45rem .4rem; border-bottom: 1px solid var(--border); text-align: left; }
+    .num { text-align: right; }
+    .pos { color: var(--positive); } .neg { color: var(--negative); } .muted { color: var(--muted); }
+    .badge { display: inline-block; padding: .1rem .45rem; border-radius: 999px; font-size: .75rem; font-weight: 600; }
+    .badge.ok { background: #dcfce7; color: var(--positive); }
+    .badge.warn { background: #fef3c7; color: #b45309; }
+    .flash { padding: .65rem .9rem; border-radius: 8px; margin-bottom: .75rem; font-size: .9rem; }
+    .flash.ok { background: #dcfce7; color: var(--positive); }
+    .flash.err { background: #fee2e2; color: var(--negative); }
+    .loading { text-align: center; padding: 3rem; color: var(--muted); }
+    .filter { display: flex; gap: .75rem; flex-wrap: wrap; align-items: end; margin-bottom: 1rem; }
+    .filter label { font-size: .85rem; }
+    .section { display: none; } .section.active { display: block; }
+    .inline { display: inline; }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="brand"><span class="brand-icon">🍌</span><div><strong>El Mana</strong><br><small>Bananera</small></div></div>
+      <button class="nav-btn active" data-section="panel">Panel</button>
+      <button class="nav-btn" data-section="camiones">Camiones</button>
+      <button class="nav-btn" data-section="salidas">Salidas</button>
+      <button class="nav-btn" data-section="trabajadores">Trabajadores</button>
+      <button class="nav-btn" data-section="asistencia">Asistencia</button>
+      <button class="nav-btn" data-section="pagos">Pagos</button>
+      <button class="nav-btn" data-section="contabilidad">Contabilidad</button>
+    </aside>
+    <main class="content">
+      <div id="flash"></div>
+      <div id="loading" class="loading">Cargando El Mana...</div>
+
+      <div id="panel" class="section"></div>
+      <div id="camiones" class="section"></div>
+      <div id="salidas" class="section"></div>
+      <div id="trabajadores" class="section"></div>
+      <div id="asistencia" class="section"></div>
+      <div id="pagos" class="section"></div>
+      <div id="contabilidad" class="section"></div>
+    </main>
+  </div>
+
+  <script>
+    const $ = id => document.getElementById(id);
+    const money = n => '$' + Number(n || 0).toLocaleString('es-CO', { maximumFractionDigits: 0 });
+    const num = n => Number(n || 0).toLocaleString('es-CO', { maximumFractionDigits: 0 });
+    const today = () => new Date().toISOString().slice(0, 10);
+
+    function flash(msg, ok) {
+      $('flash').innerHTML = msg ? '<div class="flash ' + (ok ? 'ok' : 'err') + '">' + msg + '</div>' : '';
+    }
+
+    function call(fn, ...args) {
+      return new Promise((resolve, reject) => {
+        google.script.run.withSuccessHandler(resolve).withFailureHandler(e => reject(e)).[fn](...args);
+      });
+    }
+
+    document.querySelectorAll('.nav-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+        const sec = btn.dataset.section;
+        $(sec).classList.add('active');
+        loadSection(sec);
+      });
+    });
+
+    async function loadSection(name) {
+      try {
+        if (name === 'panel') await renderPanel();
+        if (name === 'camiones') await renderCamiones();
+        if (name === 'salidas') await renderSalidas();
+        if (name === 'trabajadores') await renderTrabajadores();
+        if (name === 'asistencia') await renderAsistencia();
+        if (name === 'pagos') await renderPagos();
+        if (name === 'contabilidad') await renderContabilidad();
+      } catch (e) {
+        flash('Error: ' + (e.message || e), false);
+      }
+    }
+
+    async function renderPanel() {
+      const d = await call('getDashboard');
+      const r = d.resumen;
+      $('panel').innerHTML = `
+        <h1>Panel general</h1><p class="subtitle">Resumen · ${d.hoy}</p>
+        <div class="cards">
+          <div class="card hl"><span class="lbl">Inventario</span><strong>${num(r.inventario)} cajas</strong></div>
+          <div class="card"><span class="lbl">Valor neto</span><strong class="${r.valor_neto >= 0 ? 'pos' : 'neg'}">${money(r.valor_neto)}</strong></div>
+          <div class="card"><span class="lbl">Ventas</span><strong>${money(r.ventas)}</strong></div>
+          <div class="card"><span class="lbl">Trabajadores</span><strong>${d.trabajadoresActivos}</strong></div>
+        </div>
+        <div class="grid2">
+          <div class="panel"><h2>Contabilidad</h2>
+            <table><tr><td>Compras</td><td class="num neg">${money(r.compras)}</td></tr>
+            <tr><td>Gastos</td><td class="num neg">${money(r.gastos)}</td></tr>
+            <tr><td>Nómina pagada</td><td class="num neg">${money(r.nomina_pagada)}</td></tr>
+            <tr><td><strong>Valor neto</strong></td><td class="num"><strong>${money(r.valor_neto)}</strong></td></tr></table>
+          </div>
+          <div class="panel"><h2>Ausentes hoy</h2>
+            ${d.ausentes.length ? d.ausentes.map(a => '<p><strong>' + a.nombre + '</strong> — ' + (a.motivo || 'Sin motivo') + '</p>').join('') : '<p class="muted">Sin ausencias registradas.</p>'}
+          </div>
+        </div>
+        <div class="panel"><h2>Últimos camiones</h2>
+          ${d.camiones.length ? '<table><tr><th>Fecha</th><th>Placa</th><th>Cajas</th><th>Total</th></tr>' +
+            d.camiones.map(c => '<tr><td>' + c.fecha + '</td><td>' + (c.placa || '—') + '</td><td class="num">' + num(c.cantidad_cajas) + '</td><td class="num">' + money(c.cantidad_cajas * c.precio_compra_caja) + '</td></tr>').join('') + '</table>'
+            : '<p class="muted">Sin camiones aún.</p>'}
+        </div>`;
+    }
+
+    async function renderCamiones() {
+      const d = await call('getCamiones');
+      $('camiones').innerHTML = `
+        <h1>Entrada de camiones</h1><p class="subtitle">Registra los bananos que llegan.</p>
+        <div class="cards"><div class="card hl"><span class="lbl">Total recibido</span><strong>${num(d.total)} cajas</strong></div></div>
+        <div class="grid2">
+          <div class="panel"><h2>Nuevo camión</h2>
+            <form id="formCamion" class="form">
+              <label>Fecha<input type="date" name="fecha" value="${today()}" required></label>
+              <label>Placa<input name="placa"></label>
+              <label>Conductor<input name="conductor"></label>
+              <label>Cajas<input type="number" name="cantidad_cajas" min="1" required></label>
+              <label>Precio compra/caja<input type="number" name="precio_compra_caja" min="0" value="0"></label>
+              <label>Notas<textarea name="notas" rows="2"></textarea></label>
+              <button class="btn primary" type="submit">Registrar</button>
+            </form>
+          </div>
+          <div class="panel"><h2>Historial</h2>
+            ${d.registros.length ? '<table><tr><th>Fecha</th><th>Placa</th><th>Cajas</th><th>Total</th></tr>' +
+              d.registros.slice(0, 30).map(c => '<tr><td>' + c.fecha + '</td><td>' + (c.placa || '—') + '</td><td class="num">' + num(c.cantidad_cajas) + '</td><td class="num">' + money(c.cantidad_cajas * c.precio_compra_caja) + '</td></tr>').join('') + '</table>'
+              : '<p class="muted">Sin registros.</p>'}
+          </div>
+        </div>`;
+      $('formCamion').onsubmit = async e => {
+        e.preventDefault();
+        const fd = new FormData(e.target);
+        const data = Object.fromEntries(fd.entries());
+        await call('registrarCamion', data);
+        flash('Camión registrado.', true);
+        renderCamiones();
+      };
+    }
+
+    async function renderSalidas() {
+      const d = await call('getSalidas');
+      $('salidas').innerHTML = `
+        <h1>Salidas</h1><p class="subtitle">Inventario disponible: <strong>${num(d.inventario)} cajas</strong></p>
+        <div class="grid2">
+          <div class="panel"><h2>Nueva salida</h2>
+            <form id="formSalida" class="form">
+              <label>Fecha<input type="date" name="fecha" value="${today()}" required></label>
+              <label>Cajas<input type="number" name="cantidad_cajas" min="1" max="${d.inventario}" required></label>
+              <label>Destino<input name="destino"></label>
+              <label>Precio venta/caja<input type="number" name="precio_venta_caja" min="0" required></label>
+              <label>Camión origen<select name="camion_id"><option value="">—</option>
+                ${d.camiones.map(c => '<option value="' + c.id + '">' + c.fecha + ' · ' + (c.placa || 'S/P') + ' · ' + num(c.cantidad_cajas) + ' caj</option>').join('')}
+              </select></label>
+              <button class="btn primary" type="submit">Registrar</button>
+            </form>
+          </div>
+          <div class="panel"><h2>Historial</h2>
+            ${d.registros.length ? '<table><tr><th>Fecha</th><th>Destino</th><th>Cajas</th><th>Total</th></tr>' +
+              d.registros.slice(0, 30).map(s => '<tr><td>' + s.fecha + '</td><td>' + (s.destino || '—') + '</td><td class="num">' + num(s.cantidad_cajas) + '</td><td class="num">' + money(s.cantidad_cajas * s.precio_venta_caja) + '</td></tr>').join('') + '</table>'
+              : '<p class="muted">Sin salidas.</p>'}
+          </div>
+        </div>`;
+      $('formSalida').onsubmit = async e => {
+        e.preventDefault();
+        const data = Object.fromEntries(new FormData(e.target).entries());
+        await call('registrarSalida', data);
+        flash('Salida registrada.', true);
+        renderSalidas();
+      };
+    }
+
+    async function renderTrabajadores() {
+      const lista = await call('getTrabajadores');
+      $('trabajadores').innerHTML = `
+        <h1>Trabajadores</h1>
+        <div class="grid2">
+          <div class="panel"><h2>Nuevo</h2>
+            <form id="formTrab" class="form">
+              <label>Nombre<input name="nombre" required></label>
+              <label>Cédula<input name="cedula"></label>
+              <label>Cargo<select name="cargo"><option>Cosechador</option><option>Empacador</option><option>Conductor</option><option>Supervisor</option></select></label>
+              <label>Tarifa diaria<input type="number" name="tarifa_diaria" min="0" required></label>
+              <label>Teléfono<input name="telefono"></label>
+              <button class="btn primary" type="submit">Agregar</button>
+            </form>
+          </div>
+          <div class="panel"><h2>Lista</h2>
+            ${lista.length ? '<table><tr><th>Nombre</th><th>Cargo</th><th>Tarifa</th><th></th></tr>' +
+              lista.map(t => '<tr><td>' + t.nombre + '</td><td>' + t.cargo + '</td><td class="num">' + money(t.tarifa_diaria) + '</td><td><button class="btn" onclick="toggleTrab(' + t.id + ')">' + (t.activo == 1 ? 'Desactivar' : 'Activar') + '</button></td></tr>').join('') + '</table>'
+              : '<p class="muted">Sin trabajadores.</p>'}
+          </div>
+        </div>`;
+      $('formTrab').onsubmit = async e => {
+        e.preventDefault();
+        await call('crearTrabajador', Object.fromEntries(new FormData(e.target).entries()));
+        flash('Trabajador agregado.', true);
+        renderTrabajadores();
+      };
+    }
+
+    window.toggleTrab = async id => {
+      await call('toggleTrabajador', id);
+      renderTrabajadores();
+    };
+
+    async function renderAsistencia(fecha) {
+      fecha = fecha || $('fechaAsist')?.value || today();
+      const d = await call('getAsistencia', fecha);
+      $('asistencia').innerHTML = `
+        <h1>Asistencia</h1>
+        <div class="filter"><label>Fecha<input type="date" id="fechaAsist" value="${d.fecha}"></label>
+          <button class="btn" onclick="renderAsistencia($('fechaAsist').value)">Ver</button></div>
+        <div class="cards">
+          <div class="card"><span class="lbl">Presentes</span><strong class="pos">${d.presentes}</strong></div>
+          <div class="card"><span class="lbl">Ausentes</span><strong class="neg">${d.ausentes}</strong></div>
+        </div>
+        ${d.trabajadores.length ? '<form id="formAsist"><div class="panel"><table><tr><th>Nombre</th><th>Presente</th><th>Motivo ausencia</th></tr>' +
+          d.trabajadores.map(t => {
+            const reg = d.registros[t.id];
+            const presente = !reg || reg.presente == 1;
+            return '<tr><td>' + t.nombre + '</td><td><input type="checkbox" data-id="' + t.id + '" class="chk-pres" ' + (presente ? 'checked' : '') + '></td>' +
+              '<td><input type="text" data-id="' + t.id + '" class="inp-mot" value="' + (reg && reg.presente == 0 ? (reg.motivo_ausencia || '') : '') + '"></td></tr>';
+          }).join('') + '</table><button class="btn primary" type="submit">Guardar</button></div></form>'
+          : '<p class="muted">Registra trabajadores primero.</p>'}`;
+      if ($('formAsist')) {
+        $('formAsist').onsubmit = async e => {
+          e.preventDefault();
+          const items = [...document.querySelectorAll('.chk-pres')].map(chk => ({
+            trabajador_id: chk.dataset.id,
+            presente: chk.checked,
+            motivo: document.querySelector('.inp-mot[data-id="' + chk.dataset.id + '"]').value,
+          }));
+          await call('guardarAsistencia', $('fechaAsist').value, items);
+          flash('Asistencia guardada.', true);
+          renderAsistencia($('fechaAsist').value);
+        };
+      }
+    }
+
+    async function renderPagos() {
+      const d = await call('getPagos');
+      $('pagos').innerHTML = `
+        <h1>Pagos</h1>
+        <div class="cards">
+          <div class="card"><span class="lbl">Pendiente</span><strong>${money(d.totalPendiente)}</strong></div>
+          <div class="card"><span class="lbl">Pagado</span><strong class="pos">${money(d.totalPagado)}</strong></div>
+        </div>
+        <div class="panel"><h2>Generar nómina</h2>
+          <form id="formNomina" class="filter">
+            <label>Desde<input type="date" name="inicio" value="${d.inicioDefault}"></label>
+            <label>Hasta<input type="date" name="fin" value="${d.finDefault}"></label>
+            <button class="btn primary" type="submit">Calcular</button>
+          </form>
+        </div>
+        <div class="panel"><h2>Lista</h2>
+          ${d.pagos.length ? '<table><tr><th>Trabajador</th><th>Periodo</th><th>Días</th><th>Monto</th><th></th></tr>' +
+            d.pagos.map(p => '<tr><td>' + p.trabajador_nombre + '</td><td>' + p.periodo_inicio + ' → ' + p.periodo_fin + '</td><td class="num">' + p.dias_trabajados + '</td><td class="num">' + money(p.monto) + '</td><td>' +
+              (p.pagado == 1 ? '<span class="badge ok">Pagado</span>' : '<button class="btn primary" onclick="pagar(' + p.id + ')">Marcar pagado</button>') + '</td></tr>').join('') + '</table>'
+            : '<p class="muted">Genera la nómina de un periodo.</p>'}
+        </div>`;
+      $('formNomina').onsubmit = async e => {
+        e.preventDefault();
+        const fd = new FormData(e.target);
+        const r = await call('generarNomina', fd.get('inicio'), fd.get('fin'));
+        flash('Nómina generada para ' + r.generados + ' trabajador(es).', true);
+        renderPagos();
+      };
+    }
+
+    window.pagar = async id => {
+      await call('marcarPagado', id);
+      flash('Pago registrado.', true);
+      renderPagos();
+    };
+
+    async function renderContabilidad(inicio, fin) {
+      const d = await call('getContabilidad', inicio, fin);
+      const r = d.resumen;
+      $('contabilidad').innerHTML = `
+        <h1>Contabilidad</h1>
+        <div class="filter">
+          <label>Desde<input type="date" id="contInicio" value="${d.inicio}"></label>
+          <label>Hasta<input type="date" id="contFin" value="${d.fin}"></label>
+          <button class="btn" onclick="renderContabilidad($('contInicio').value, $('contFin').value)">Filtrar</button>
+        </div>
+        <div class="cards">
+          <div class="card"><span class="lbl">Ventas</span><strong class="pos">${money(r.ventas)}</strong></div>
+          <div class="card"><span class="lbl">Compras</span><strong class="neg">${money(r.compras)}</strong></div>
+          <div class="card"><span class="lbl">Gastos</span><strong class="neg">${money(r.gastos)}</strong></div>
+          <div class="card hl"><span class="lbl">Valor neto</span><strong class="${r.valor_neto >= 0 ? 'pos' : 'neg'}">${money(r.valor_neto)}</strong></div>
+        </div>
+        <div class="grid2">
+          <div class="panel"><h2>Registrar gasto</h2>
+            <form id="formGasto" class="form">
+              <label>Fecha<input type="date" name="fecha" value="${today()}" required></label>
+              <label>Categoría<select name="categoria"><option>Combustible</option><option>Fertilizantes</option><option>Mantenimiento</option><option>Transporte</option><option>Otro</option></select></label>
+              <label>Descripción<input name="descripcion"></label>
+              <label>Monto<input type="number" name="monto" min="1" required></label>
+              <button class="btn primary" type="submit">Registrar</button>
+            </form>
+          </div>
+          <div class="panel"><h2>Gastos</h2>
+            ${d.gastos.length ? d.gastos.map(g => '<p>' + g.fecha + ' · ' + g.categoria + ' · <strong class="neg">' + money(g.monto) + '</strong></p>').join('') : '<p class="muted">Sin gastos.</p>'}
+          </div>
+        </div>
+        <div class="panel"><h2>Movimientos</h2>
+          ${d.movimientos.length ? '<table><tr><th>Fecha</th><th>Tipo</th><th>Detalle</th><th>Monto</th></tr>' +
+            d.movimientos.map(m => '<tr><td>' + m.fecha + '</td><td>' + m.tipo + '</td><td>' + (m.detalle || '—') + '</td><td class="num ' + (m.tipo === 'Venta' ? 'pos' : 'neg') + '">' + money(m.monto) + '</td></tr>').join('') + '</table>'
+            : '<p class="muted">Sin movimientos.</p>'}
+        </div>`;
+      $('formGasto').onsubmit = async e => {
+        e.preventDefault();
+        await call('registrarGasto', Object.fromEntries(new FormData(e.target).entries()));
+        flash('Gasto registrado.', true);
+        renderContabilidad($('contInicio').value, $('contFin').value);
+      };
+    }
+
+    (async () => {
+      $('loading').style.display = 'none';
+      $('panel').classList.add('active');
+      await loadSection('panel');
+    })();
+  </script>
+</body>
+</html>

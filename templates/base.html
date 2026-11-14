@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}El Mana{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="brand">
+        <span class="brand-icon">🍌</span>
+        <div>
+          <strong>El Mana</strong>
+          <small>Bananera</small>
+        </div>
+      </div>
+      <nav>
+        <a href="{{ url_for('dashboard') }}" class="{% if request.endpoint == 'dashboard' %}active{% endif %}">Panel</a>
+        <a href="{{ url_for('camiones') }}" class="{% if request.endpoint == 'camiones' %}active{% endif %}">Camiones (Entrada)</a>
+        <a href="{{ url_for('salidas') }}" class="{% if request.endpoint == 'salidas' %}active{% endif %}">Salidas</a>
+        <a href="{{ url_for('trabajadores') }}" class="{% if request.endpoint == 'trabajadores' %}active{% endif %}">Trabajadores</a>
+        <a href="{{ url_for('asistencia') }}" class="{% if request.endpoint == 'asistencia' %}active{% endif %}">Asistencia</a>
+        <a href="{{ url_for('pagos') }}" class="{% if request.endpoint == 'pagos' %}active{% endif %}">Pagos</a>
+        <a href="{{ url_for('contabilidad') }}" class="{% if request.endpoint == 'contabilidad' %}active{% endif %}">Contabilidad</a>
+      </nav>
+    </aside>
+
+    <main class="content">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          <div class="flash-group">
+            {% for category, message in messages %}
+              <div class="flash flash-{{ category }}">{{ message }}</div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% endwith %}
+
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+</body>
+</html>

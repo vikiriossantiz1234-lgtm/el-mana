@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Asistencia — El Mana{% endblock %}
+{% block content %}
+<h1>Asistencia diaria</h1>
+<p class="subtitle">Marca quién asistió y registra el motivo cuando falten.</p>
+
+<form method="get" class="filter-bar">
+  <label>Fecha<input type="date" name="fecha" value="{{ fecha }}" onchange="this.form.submit()"></label>
+</form>
+
+<div class="cards">
+  <div class="card">
+    <span class="label">Presentes</span>
+    <strong class="positive">{{ resumen_dia.presentes or 0 }}</strong>
+  </div>
+  <div class="card">
+    <span class="label">Ausentes</span>
+    <strong class="negative">{{ resumen_dia.ausentes or 0 }}</strong>
+  </div>
+</div>
+
+{% if trabajadores %}
+<form method="post" class="panel">
+  <input type="hidden" name="fecha" value="{{ fecha }}">
+  <table class="table">
+    <thead>
+      <tr><th>Trabajador</th><th>Cargo</th><th>Presente</th><th>Motivo ausencia</th></tr>
+    </thead>
+    <tbody>
+      {% for t in trabajadores %}
+        {% set reg = registros.get(t.id) %}
+        <tr>
+          <td>{{ t.nombre }}</td>
+          <td>{{ t.cargo }}</td>
+          <td class="center">
+            <input type="checkbox" name="presente_{{ t.id }}" {% if not reg or reg.presente %}checked{% endif %}>
+          </td>
+          <td>
+            <input type="text" name="motivo_{{ t.id }}" placeholder="Enfermedad, permiso..."
+                   value="{{ reg.motivo_ausencia if reg and not reg.presente else '' }}">
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <button type="submit" class="btn primary">Guardar asistencia</button>
+</form>
+{% else %}
+  <p class="muted">Primero registra trabajadores en la sección correspondiente.</p>
+{% endif %}
+{% endblock %}

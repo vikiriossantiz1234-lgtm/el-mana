@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}Salidas — El Mana{% endblock %}
+{% block content %}
+<h1>Salidas de banano</h1>
+<p class="subtitle">Registra ventas y despachos. Se descuenta del inventario disponible.</p>
+
+<div class="cards">
+  <div class="card highlight">
+    <span class="label">Inventario disponible</span>
+    <strong>{{ "{:,.0f}".format(inventario) }} cajas</strong>
+  </div>
+</div>
+
+<div class="grid-2">
+  <section class="panel">
+    <h2>Nueva salida</h2>
+    <form method="post" class="form">
+      <label>Fecha<input type="date" name="fecha" value="{{ hoy }}" required></label>
+      <label>Cantidad de cajas<input type="number" name="cantidad_cajas" min="1" step="1" required max="{{ inventario | int }}"></label>
+      <label>Destino / Cliente<input type="text" name="destino" placeholder="Exportadora, mercado..."></label>
+      <label>Precio venta por caja ($)<input type="number" name="precio_venta_caja" min="0" step="100" required></label>
+      <label>Camión origen (opcional)
+        <select name="camion_id">
+          <option value="">— Sin vincular —</option>
+          {% for c in camiones %}
+            <option value="{{ c.id }}">{{ c.fecha }} · {{ c.placa or 'Sin placa' }} · {{ "{:,.0f}".format(c.cantidad_cajas) }} cajas</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>Notas<textarea name="notas" rows="2"></textarea></label>
+      <button type="submit" class="btn primary">Registrar salida</button>
+    </form>
+  </section>
+
+  <section class="panel">
+    <h2>Historial de salidas</h2>
+    {% if registros %}
+      <table class="table">
+        <thead>
+          <tr><th>Fecha</th><th>Destino</th><th>Cajas</th><th>Total venta</th></tr>
+        </thead>
+        <tbody>
+          {% for r in registros %}
+            <tr>
+              <td>{{ r.fecha }}</td>
+              <td>{{ r.destino or "—" }}</td>
+              <td class="num">{{ "{:,.0f}".format(r.cantidad_cajas) }}</td>
+              <td class="num">{{ (r.cantidad_cajas * r.precio_venta_caja) | money }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p class="muted">Sin salidas registradas.</p>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

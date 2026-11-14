@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}Pagos — El Mana{% endblock %}
+{% block content %}
+<h1>Pagos a trabajadores</h1>
+<p class="subtitle">Genera la nómina según asistencia y marca los pagos realizados.</p>
+
+<div class="cards">
+  <div class="card">
+    <span class="label">Pendiente de pago</span>
+    <strong>{{ total_pendiente | money }}</strong>
+  </div>
+  <div class="card">
+    <span class="label">Total pagado</span>
+    <strong class="positive">{{ total_pagado | money }}</strong>
+  </div>
+</div>
+
+<section class="panel">
+  <h2>Generar nómina del periodo</h2>
+  <form method="post" class="form inline-form">
+    <input type="hidden" name="accion" value="generar">
+    <label>Desde<input type="date" name="periodo_inicio" value="{{ inicio_default }}" required></label>
+    <label>Hasta<input type="date" name="periodo_fin" value="{{ fin_default }}" required></label>
+    <button type="submit" class="btn primary">Calcular nómina</button>
+  </form>
+  <p class="hint">Se calcula: días con asistencia × tarifa diaria de cada trabajador.</p>
+</section>
+
+<section class="panel">
+  <h2>Lista de pagos</h2>
+  {% if pagos %}
+    <table class="table">
+      <thead>
+        <tr><th>Trabajador</th><th>Periodo</th><th>Días</th><th>Monto</th><th>Estado</th><th></th></tr>
+      </thead>
+      <tbody>
+        {% for p in pagos %}
+          <tr>
+            <td>{{ p.trabajador_nombre }}<br><small>{{ p.cargo }}</small></td>
+            <td>{{ p.periodo_inicio }} → {{ p.periodo_fin }}</td>
+            <td class="num">{{ p.dias_trabajados }}</td>
+            <td class="num">{{ p.monto | money }}</td>
+            <td>
+              {% if p.pagado %}
+                <span class="badge ok">Pagado {{ p.fecha_pago }}</span>
+              {% else %}
+                <span class="badge warn">Pendiente</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if not p.pagado %}
+                <form method="post" class="inline">
+                  <input type="hidden" name="accion" value="marcar_pagado">
+                  <input type="hidden" name="pago_id" value="{{ p.id }}">
+                  <button type="submit" class="btn small primary">Marcar pagado</button>
+                </form>
+              {% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p class="muted">Genera la nómina para un periodo con asistencia registrada.</p>
+  {% endif %}
+</section>
+{% endblock %}

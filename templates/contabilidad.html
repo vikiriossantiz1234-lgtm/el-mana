@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% block title %}Contabilidad — El Mana{% endblock %}
+{% block content %}
+<h1>Contabilidad</h1>
+<p class="subtitle">Ingresos, egresos y valor neto de la operación.</p>
+
+<form method="get" class="filter-bar">
+  <label>Desde<input type="date" name="inicio" value="{{ inicio }}"></label>
+  <label>Hasta<input type="date" name="fin" value="{{ fin }}"></label>
+  <button type="submit" class="btn">Filtrar</button>
+</form>
+
+<div class="cards">
+  <div class="card">
+    <span class="label">Ingresos (ventas)</span>
+    <strong class="positive">{{ resumen.ventas | money }}</strong>
+  </div>
+  <div class="card">
+    <span class="label">Compras banano</span>
+    <strong class="negative">{{ resumen.compras | money }}</strong>
+  </div>
+  <div class="card">
+    <span class="label">Gastos</span>
+    <strong class="negative">{{ resumen.gastos | money }}</strong>
+  </div>
+  <div class="card highlight">
+    <span class="label">Valor neto</span>
+    <strong class="{% if resumen.valor_neto >= 0 %}positive{% else %}negative{% endif %}">{{ resumen.valor_neto | money }}</strong>
+  </div>
+</div>
+
+<div class="grid-2">
+  <section class="panel">
+    <h2>Registrar gasto</h2>
+    <form method="post" class="form">
+      <label>Fecha<input type="date" name="fecha" value="{{ hoy }}" required></label>
+      <label>Categoría
+        <select name="categoria">
+          <option>Combustible</option>
+          <option>Fertilizantes</option>
+          <option>Mantenimiento</option>
+          <option>Servicios</option>
+          <option>Transporte</option>
+          <option>Otro</option>
+        </select>
+      </label>
+      <label>Descripción<input type="text" name="descripcion" placeholder="Detalle del gasto"></label>
+      <label>Monto ($)<input type="number" name="monto" min="1" step="100" required></label>
+      <button type="submit" class="btn primary">Registrar gasto</button>
+    </form>
+  </section>
+
+  <section class="panel">
+    <h2>Gastos del periodo</h2>
+    {% if gastos %}
+      <table class="table compact">
+        <thead><tr><th>Fecha</th><th>Categoría</th><th>Monto</th></tr></thead>
+        <tbody>
+          {% for g in gastos %}
+            <tr>
+              <td>{{ g.fecha }}</td>
+              <td>{{ g.categoria }}</td>
+              <td class="num negative">{{ g.monto | money }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p class="muted">Sin gastos en este periodo.</p>
+    {% endif %}
+  </section>
+</div>
+
+<section class="panel">
+  <h2>Movimientos del periodo</h2>
+  {% if movimientos %}
+    <table class="table">
+      <thead>
+        <tr><th>Fecha</th><th>Tipo</th><th>Detalle</th><th>Cajas</th><th>Monto</th></tr>
+      </thead>
+      <tbody>
+        {% for m in movimientos %}
+          <tr>
+            <td>{{ m.fecha }}</td>
+            <td><span class="badge type-{{ m.tipo | lower | replace(' ', '-') }}">{{ m.tipo }}</span></td>
+            <td>{{ m.detalle or "—" }}</td>
+            <td class="num">{% if m.cantidad_cajas %}{{ "{:,.0f}".format(m.cantidad_cajas) }}{% else %}—{% endif %}</td>
+            <td class="num {% if m.tipo == 'Venta' %}positive{% else %}negative{% endif %}">{{ m.monto | money }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p class="muted">Sin movimientos en el periodo seleccionado.</p>
+  {% endif %}
+</section>
+{% endblock %}

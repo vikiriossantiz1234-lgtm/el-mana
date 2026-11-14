@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}Trabajadores — El Mana{% endblock %}
+{% block content %}
+<h1>Trabajadores</h1>
+<p class="subtitle">Registra el personal y su tarifa diaria para calcular pagos.</p>
+
+<div class="grid-2">
+  <section class="panel">
+    <h2>Nuevo trabajador</h2>
+    <form method="post" class="form">
+      <input type="hidden" name="accion" value="crear">
+      <label>Nombre completo<input type="text" name="nombre" required></label>
+      <label>Cédula<input type="text" name="cedula" placeholder="Opcional"></label>
+      <label>Cargo
+        <select name="cargo">
+          <option>Cosechador</option>
+          <option>Empacador</option>
+          <option>Conductor</option>
+          <option>Supervisor</option>
+          <option>Administrativo</option>
+        </select>
+      </label>
+      <label>Tarifa diaria ($)<input type="number" name="tarifa_diaria" min="0" step="1000" required></label>
+      <label>Teléfono<input type="text" name="telefono"></label>
+      <button type="submit" class="btn primary">Agregar trabajador</button>
+    </form>
+  </section>
+
+  <section class="panel">
+    <h2>Lista de personal</h2>
+    {% if trabajadores %}
+      <table class="table">
+        <thead>
+          <tr><th>Nombre</th><th>Cargo</th><th>Tarifa/día</th><th>Estado</th><th></th></tr>
+        </thead>
+        <tbody>
+          {% for t in trabajadores %}
+            <tr class="{% if not t.activo %}inactive{% endif %}">
+              <td>{{ t.nombre }}</td>
+              <td>{{ t.cargo }}</td>
+              <td class="num">{{ t.tarifa_diaria | money }}</td>
+              <td><span class="badge {% if t.activo %}ok{% else %}off{% endif %}">{{ "Activo" if t.activo else "Inactivo" }}</span></td>
+              <td>
+                <form method="post" class="inline">
+                  <input type="hidden" name="accion" value="toggle">
+                  <input type="hidden" name="worker_id" value="{{ t.id }}">
+                  <button type="submit" class="btn small">{{ "Desactivar" if t.activo else "Activar" }}</button>
+                </form>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p class="muted">No hay trabajadores registrados.</p>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

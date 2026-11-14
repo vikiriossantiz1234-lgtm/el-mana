@@ -1,0 +1,10 @@
+# Datos reales del negocio: NO subir
+*.db
+*.sqlite
+soportes/
+copias/
+
+# Archivos generados por Python
+__pycache__/
+*.pyc
+venv/

@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block title %}Panel — El Mana{% endblock %}
+{% block content %}
+<h1>Panel general</h1>
+<p class="subtitle">Resumen del mes · {{ hoy }}</p>
+
+<div class="cards">
+  <div class="card highlight">
+    <span class="label">Inventario actual</span>
+    <strong>{{ "{:,.0f}".format(resumen.inventario) }} cajas</strong>
+  </div>
+  <div class="card">
+    <span class="label">Valor neto (mes)</span>
+    <strong class="{% if resumen.valor_neto >= 0 %}positive{% else %}negative{% endif %}">{{ resumen.valor_neto | money }}</strong>
+  </div>
+  <div class="card">
+    <span class="label">Ingresos por ventas</span>
+    <strong>{{ resumen.ventas | money }}</strong>
+  </div>
+  <div class="card">
+    <span class="label">Trabajadores activos</span>
+    <strong>{{ trabajadores_activos }}</strong>
+  </div>
+</div>
+
+<div class="grid-2">
+  <section class="panel">
+    <h2>Contabilidad del mes</h2>
+    <table class="table compact">
+      <tr><td>Compras de banano</td><td class="num negative">{{ resumen.compras | money }}</td></tr>
+      <tr><td>Gastos operativos</td><td class="num negative">{{ resumen.gastos | money }}</td></tr>
+      <tr><td>Nómina pagada</td><td class="num negative">{{ resumen.nomina_pagada | money }}</td></tr>
+      <tr><td>Nómina pendiente</td><td class="num">{{ resumen.nomina_pendiente | money }}</td></tr>
+      <tr class="total"><td><strong>Valor neto</strong></td><td class="num"><strong>{{ resumen.valor_neto | money }}</strong></td></tr>
+    </table>
+  </section>
+
+  <section class="panel">
+    <h2>Ausentes hoy</h2>
+    {% if ausentes_hoy %}
+      <ul class="list">
+        {% for a in ausentes_hoy %}
+          <li><strong>{{ a.nombre }}</strong> — {{ a.motivo_ausencia or "Sin motivo" }}</li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="muted">Todos presentes o asistencia no registrada.</p>
+    {% endif %}
+  </section>
+</div>
+
+<section class="panel">
+  <h2>Últimos camiones recibidos</h2>
+  {% if camiones_recientes %}
+    <table class="table">
+      <thead>
+        <tr><th>Fecha</th><th>Placa</th><th>Conductor</th><th>Cajas</th><th>Costo total</th></tr>
+      </thead>
+      <tbody>
+        {% for c in camiones_recientes %}
+          <tr>
+            <td>{{ c.fecha }}</td>
+            <td>{{ c.placa or "—" }}</td>
+            <td>{{ c.conductor or "—" }}</td>
+            <td class="num">{{ "{:,.0f}".format(c.cantidad_cajas) }}</td>
+            <td class="num">{{ (c.cantidad_cajas * c.precio_compra_caja) | money }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p class="muted">Aún no hay camiones registrados. <a href="{{ url_for('camiones') }}">Registrar el primero</a>.</p>
+  {% endif %}
+</section>
+{% endblock %}

@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}Camiones — El Mana{% endblock %}
+{% block content %}
+<h1>Entrada de camiones</h1>
+<p class="subtitle">Registra la cantidad de bananos que llegan. Todo el inventario parte de aquí.</p>
+
+<div class="cards">
+  <div class="card highlight">
+    <span class="label">Total cajas recibidas</span>
+    <strong>{{ "{:,.0f}".format(total_cajas) }}</strong>
+  </div>
+</div>
+
+<div class="grid-2">
+  <section class="panel">
+    <h2>Nuevo camión</h2>
+    <form method="post" class="form">
+      <label>Fecha<input type="date" name="fecha" value="{{ hoy }}" required></label>
+      <label>Placa del camión<input type="text" name="placa" placeholder="ABC-123"></label>
+      <label>Conductor<input type="text" name="conductor" placeholder="Nombre"></label>
+      <label>Cantidad de cajas<input type="number" name="cantidad_cajas" min="1" step="1" required placeholder="Ej: 500"></label>
+      <label>Precio compra por caja ($)<input type="number" name="precio_compra_caja" min="0" step="100" value="0"></label>
+      <label>Notas<textarea name="notas" rows="2" placeholder="Observaciones"></textarea></label>
+      <button type="submit" class="btn primary">Registrar camión</button>
+    </form>
+  </section>
+
+  <section class="panel">
+    <h2>Historial reciente</h2>
+    {% if registros %}
+      <table class="table">
+        <thead>
+          <tr><th>Fecha</th><th>Placa</th><th>Cajas</th><th>$/caja</th><th>Total</th></tr>
+        </thead>
+        <tbody>
+          {% for r in registros %}
+            <tr>
+              <td>{{ r.fecha }}</td>
+              <td>{{ r.placa or "—" }}</td>
+              <td class="num">{{ "{:,.0f}".format(r.cantidad_cajas) }}</td>
+              <td class="num">{{ r.precio_compra_caja | money }}</td>
+              <td class="num">{{ (r.cantidad_cajas * r.precio_compra_caja) | money }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p class="muted">Sin registros aún.</p>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}
