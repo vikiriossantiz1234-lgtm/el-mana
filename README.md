@@ -16,3 +16,5 @@ app.py (inicio) · el_mana.py (ventana y módulos de apoyo) · facturas.py (pest
 · database.py (base de datos y reglas)
 
 Proyecto de grado – Ingeniería de Sistemas, UNAD. Autora: Virginia Rios Santis.
+
+Corregir nombre de requirements.txt en README
