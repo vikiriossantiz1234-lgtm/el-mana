@@ -44,12 +44,40 @@ def autenticar(usuario: str, password: str):
             "SELECT * FROM usuarios WHERE usuario = ? AND activo = 1",
             (usuario.strip().lower(),),
         )
-    if not row:
+    if not row or not password:
         return None
     _salt, digest = hash_password(password, row["salt"])
     if digest != row["password_hash"]:
         return None
     return {"id": row["id"], "usuario": row["usuario"], "nombre": row["nombre"], "rol": row["rol"]}
+
+
+def hay_usuarios() -> bool:
+    with db() as conn:
+        return fetch_one(conn, "SELECT id FROM usuarios LIMIT 1") is not None
+
+
+def crear_usuario(usuario: str, nombre: str, password: str, rol: str = "administrador"):
+    usuario = (usuario or "").strip().lower()
+    nombre = (nombre or "").strip()
+    if not usuario or not nombre:
+        raise ValueError("Escriba el usuario y el nombre.")
+    if not password or len(password) < 6:
+        raise ValueError("La contraseña debe tener al menos 6 caracteres.")
+    if rol not in ("administrador", "consulta"):
+        raise ValueError("Rol no válido.")
+    salt, digest = hash_password(password)
+    with db() as conn:
+        existe = fetch_one(conn, "SELECT id FROM usuarios WHERE usuario = ?", (usuario,))
+        if existe:
+            raise ValueError("Ese usuario ya existe.")
+        conn.execute(
+            """
+            INSERT INTO usuarios (usuario, nombre, rol, salt, password_hash)
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            (usuario, nombre, rol, salt, digest),
+        )
 
 
 def es_admin(usuario) -> bool:
@@ -578,33 +606,54 @@ def pedir_sesion():
     from database import init_db
 
     init_db()
+    primera_vez = not hay_usuarios()
     root = tk.Tk()
     root.title("Microempresa El Maná")
-    root.geometry("420x280")
+    root.geometry("440x360" if primera_vez else "420x260")
     root.resizable(False, False)
     frm = ttk.Frame(root, padding=16)
     frm.pack(fill="both", expand=True)
     ttk.Label(frm, text="MICROEMPRESA EL MANÁ", font=("Segoe UI", 14, "bold")).pack(anchor="w")
-    ttk.Label(frm, text="Inicie sesión para registrar y consultar facturas.").pack(anchor="w", pady=(0, 10))
+    ttk.Label(
+        frm,
+        text="Cree el administrador. La contraseña se guarda cifrada." if primera_vez else "Inicie sesión para registrar y consultar facturas.",
+    ).pack(anchor="w", pady=(0, 10))
     ttk.Label(frm, text="Usuario").pack(anchor="w")
     usuario = ttk.Entry(frm)
-    usuario.insert(0, "admin")
     usuario.pack(fill="x", pady=(0, 6))
+    nombre = None
+    if primera_vez:
+        ttk.Label(frm, text="Nombre").pack(anchor="w")
+        nombre = ttk.Entry(frm)
+        nombre.pack(fill="x", pady=(0, 6))
     ttk.Label(frm, text="Contraseña").pack(anchor="w")
     clave = ttk.Entry(frm, show="*")
     clave.pack(fill="x", pady=(0, 6))
-    ttk.Label(frm, text="Primera vez: usuario admin, contraseña elmana.", foreground="#555").pack(anchor="w")
+    confirmar = None
+    if primera_vez:
+        ttk.Label(frm, text="Confirmar contraseña").pack(anchor="w")
+        confirmar = ttk.Entry(frm, show="*")
+        confirmar.pack(fill="x", pady=(0, 6))
     sesion = {}
 
     def entrar(_event=None):
-        user = autenticar(usuario.get(), clave.get())
+        try:
+            if primera_vez:
+                if clave.get() != confirmar.get():
+                    messagebox.showerror("Acceso", "Las contraseñas no coinciden.", parent=root)
+                    return
+                crear_usuario(usuario.get(), nombre.get(), clave.get())
+            user = autenticar(usuario.get(), clave.get())
+        except ValueError as ex:
+            messagebox.showerror("Acceso", str(ex), parent=root)
+            return
         if not user:
             messagebox.showerror("Acceso", "Usuario o contraseña incorrectos.", parent=root)
             return
         sesion["user"] = user
         root.destroy()
 
-    ttk.Button(frm, text="Entrar", command=entrar).pack(anchor="w", pady=12)
+    ttk.Button(frm, text="Crear y entrar" if primera_vez else "Entrar", command=entrar).pack(anchor="w", pady=12)
     clave.bind("<Return>", entrar)
     root.protocol("WM_DELETE_WINDOW", root.destroy)
     root.mainloop()

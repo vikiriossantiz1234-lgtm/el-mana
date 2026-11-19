@@ -205,8 +205,15 @@ def init_db():
             );
             """
         )
-        _asegurar_admin(conn)
         _migrate_schema(conn)
+        conn.executescript(
+            """
+            CREATE INDEX IF NOT EXISTS idx_facturas_nit ON facturas(nit);
+            CREATE INDEX IF NOT EXISTS idx_facturas_razon_social ON facturas(razon_social);
+            CREATE INDEX IF NOT EXISTS idx_facturas_numero ON facturas(numero);
+            CREATE INDEX IF NOT EXISTS idx_facturas_fecha_emision ON facturas(fecha_emision);
+            """
+        )
 
 
 def _column_exists(conn, table, column):
@@ -267,24 +274,6 @@ def calcular_iva(monto, porcentaje, aplica):
     if not aplica:
         return 0.0
     return round(float(monto or 0) * float(porcentaje or 0) / 100.0, 2)
-
-
-def _asegurar_admin(conn):
-    import hashlib
-    import secrets
-
-    row = fetch_one(conn, "SELECT id FROM usuarios LIMIT 1")
-    if row:
-        return
-    salt = secrets.token_hex(16)
-    digest = hashlib.pbkdf2_hmac("sha256", b"elmana", salt.encode(), 120_000).hex()
-    conn.execute(
-        """
-        INSERT INTO usuarios (usuario, nombre, rol, salt, password_hash)
-        VALUES ('admin', 'Propietario', 'administrador', ?, ?)
-        """,
-        (salt, digest),
-    )
 
 
 def today_iso():
